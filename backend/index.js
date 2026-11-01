@@ -26,9 +26,6 @@ app.use("/api", adminRoutes);
 app.use("/api", emailRoutes);
 app.use("/api/cache", cacheRoutes);
 
-const PORT = process.env.PORT;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-
 async function initializeSettings() {
     const { getSettings } = require("./services/settings");
     const { updateSettingsCache } = require("./config/settings");
@@ -43,3 +40,12 @@ async function initializeSettings() {
 }
 
 initializeSettings();
+
+// On Vercel the app is handled as a serverless function, so only listen when
+// running as a standalone server (local development / self-hosted).
+if (!process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import config from '../config';
+import {
+  getQueueApiBaseUrls,
+  queueApiFetch,
+  resolveQueueApiBaseUrl,
+} from '../config/queueApi';
 import {
   getStageJob,
   removeStageJob,
@@ -89,11 +93,10 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
       eventSourceRef.current = null;
     }
 
-    const url = `${config.QUEUE_API_BASE_URL}/get-job?id=${jobState.jobId}&limit=30`;
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
-    activeJobIdRef.current = jobState.jobId;
-    setConnectionState('streaming');
+    let cancelled = false;
+    let current = null;
+    const candidates = getQueueApiBaseUrls();
+    let attempt = 0;
 
     const handleStatus = (event) => {
       const data = safeParse(event.data);
@@ -125,6 +128,9 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
     };
 
     const handleError = (event) => {
+      // EventSource fires a data-less 'error' event for connection failures too;
+      // those are handled by source.onerror so failover can kick in.
+      if (!event?.data) return;
       const data = safeParse(event.data) || {};
       syncState((prev) => {
         if (!prev) return prev;
@@ -139,18 +145,55 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
       stopStream();
     };
 
-    es.addEventListener('status', handleStatus);
-    es.addEventListener('result', handleResult);
-    es.addEventListener('error', handleError);
-    es.addEventListener('ping', () => { });
-    es.onerror = () => {
-      setConnectionState('error');
+    const attach = (base) => {
+      if (cancelled) return;
+      const url = `${base}/get-job?id=${jobState.jobId}&limit=30`;
+      const source = new EventSource(url);
+      current = source;
+      eventSourceRef.current = source;
+      activeJobIdRef.current = jobState.jobId;
+
+      source.addEventListener('status', handleStatus);
+      source.addEventListener('result', handleResult);
+      source.addEventListener('error', handleError);
+      source.addEventListener('ping', () => { });
+
+      source.onerror = () => {
+        if (cancelled) return;
+        // Connection-level failure: fail over to the next candidate once.
+        if (attempt < candidates.length - 1) {
+          attempt += 1;
+          try {
+            source.close();
+          } catch {
+            // ignore
+          }
+          attach(candidates[attempt]);
+          return;
+        }
+        setConnectionState('error');
+      };
+
+      setConnectionState('streaming');
     };
 
+    (async () => {
+      // Probe for a reachable queue (primary server, else Vercel fallback).
+      const base = (await resolveQueueApiBaseUrl()) ?? candidates[0];
+      if (cancelled || !base) return;
+      const idx = candidates.indexOf(base);
+      if (idx > 0) attempt = idx;
+      attach(base);
+    })();
+
     return () => {
-      es.removeEventListener('status', handleStatus);
-      es.removeEventListener('result', handleResult);
-      es.removeEventListener('error', handleError);
+      cancelled = true;
+      if (current) {
+        current.removeEventListener('status', handleStatus);
+        current.removeEventListener('result', handleResult);
+        current.removeEventListener('error', handleError);
+        current.onerror = null;
+      }
       stopStream();
     };
   }, [enabled, jobState?.jobId, jobState?.lastEvent, stageKey, stopStream, syncState]);
@@ -240,7 +283,7 @@ const useCreateJob = ({
     setCreating(true);
     setCreateError(null);
     try {
-      const response = await fetch(`${config.QUEUE_API_BASE_URL}/create-job`, {
+      const response = await queueApiFetch('/create-job', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

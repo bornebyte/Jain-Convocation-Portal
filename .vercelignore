@@ -1,0 +1,20 @@
+# This Vercel project is the frontend + backend monorepo only.
+# The face-search worker and face-search queue are deployed as separate projects.
+face-search-worker
+face-search-queue
+
+# Local/dev artifacts
+.git
+.vercel
+node_modules
+**/node_modules
+backend/.env
+backend/.env.bak
+backend/serviceAccountKey.json
+frontend/dist
+*.log
+test
+venv
+__pycache__
+.vscode
+*.docx
