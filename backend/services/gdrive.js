@@ -3,7 +3,7 @@ const { getSettings } = require("../config/settings");
 const { cache, TTL } = require("../config/cache");
 const { limitedMap } = require("../utils/concurrency");
 
-const EDGE_CACHE_PROXY = "https://cdn.sa-fet.com/edge-cache";
+const EDGE_CACHE_PROXY = "https://delicate-leaf-46ed.shahshubham1888.workers.dev/";
 
 const _getAuth = async () => {
     const auth = new google.auth.GoogleAuth({
