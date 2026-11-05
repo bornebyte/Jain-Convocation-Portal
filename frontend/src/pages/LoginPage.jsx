@@ -1,5 +1,5 @@
 import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
-import { Alert, Box, Button, Card, CardContent, Collapse, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import config from "../config";
@@ -14,7 +14,6 @@ function LoginPage() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showPhoneField, setShowPhoneField] = useState(false);
   const navigate = useNavigate();
   const { login, userData } = useAuth();
 
@@ -25,27 +24,8 @@ function LoginPage() {
     }
   }, [userData, navigate]);
 
-  const isUSN = (username) => {
-    const usnRegex = /^\d{2}\d?[A-Z]+\d{2}\d?\d?$/;
-    return usnRegex.test(username.toUpperCase());
-  }
-
-  const isEmail = (username) => {
-    const emailRegex = /^.*$/;
-    return emailRegex.test(username);
-  }
-
   const handleUsernameChange = (value) => {
-    const sanitized = value.toUpperCase().replace(/\s+/g, '');
-    setUsername(sanitized);
-    
-    // Show phone field only if it's a valid USN
-    if (isUSN(sanitized)) {
-      setShowPhoneField(true);
-    } else {
-      setShowPhoneField(false);
-      setPassword(''); // Clear password when switching back
-    }
+    setUsername(value.trim().includes('@') ? value.trim().toLowerCase() : value.trim().toUpperCase());
   }
 
   const handleLogin = async (e) => {
@@ -53,21 +33,14 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      // If email, send empty password
-      const loginPassword = isEmail(username) ? '' : password;
-      
       const response = await fetch(`${config.API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username, password: loginPassword }),
+        body: JSON.stringify({ username: username, password }),
       });
 
       if (response.ok) {
         const { userdata, token } = await response.json();
-
-        if (userdata?.passwordLess) {
-          alert("Password verification skipped. You can login directly.")
-        }
 
         try {
           const PRANK_USNS = ['21BTRAS017', '21BTRAN024', '21BTRAS031', 'TEST001']
@@ -104,17 +77,6 @@ function LoginPage() {
     }
   };
 
-  const validatePassword = (password) => {
-    // Regex for Indian and Nepal phone numbers with optional country codes:
-    // - Must be exactly 10 or 12 digits
-    // - Must start with 6, 7, 8, or 9 for India
-    // - Must start with 9 for Nepal
-    // - Optional country codes: 91 for India, 977 for Nepal
-    const regex = /^(91|977)?[6-9]\d{9}(\d{3})?$/;
-    const sanitized = String(password).replace(/\s+/g, '');
-    return regex.test(sanitized);
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
@@ -132,41 +94,35 @@ function LoginPage() {
 
           <form onSubmit={handleLogin}>
             <TextField
-              label='USN / Email'
+              label='Username / Email'
               variant='outlined'
               fullWidth
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               required
               margin='normal'
-              placeholder="Enter your USN or Email"
-              helperText={username && !isUSN(username) && !isEmail(username) ? "Please enter a valid USN or Email" : ""}
-              error={username.length > 0 && !isUSN(username) && !isEmail(username)}
+              placeholder="Enter your username or email"
             />
-            <Collapse in={showPhoneField} timeout={300}>
-              <TextField
-                label='Phone Number'
-                type={showPassword ? 'text' : 'password'}
-                variant='outlined'
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required={showPhoneField}
-                margin='normal'
-                placeholder="Enter your registered phone number"
-                error={!validatePassword(password) && password.length > 0}
-                helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                        {showPassword ? <VisibilityOutlined /> : <VisibilityOffOutlined />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Collapse>
+            <TextField
+              label='Password'
+              type={showPassword ? 'text' : 'password'}
+              variant='outlined'
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              margin='normal'
+              placeholder="Enter your password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOutlined /> : <VisibilityOffOutlined />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
             <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}
             </Button>

@@ -5,47 +5,46 @@ const { invalidateCache } = require("../utils/cache.utils");
 
 const COLLECTION_NAME = "2025";
 
-const validateEmail = (email) => {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	return emailRegex.test(email);
-}
+const normalizeLogin = (value) => {
+	const identifier = String(value || "").trim();
+	return identifier.includes("@") ? identifier.toLowerCase() : identifier.toUpperCase();
+};
 
-// Function to authenticate user (auto-register if not exists)
+const isValidLoginIdentifier = (identifier) => {
+	if (!identifier || /\s/.test(identifier)) return false;
+	if (identifier.includes("@")) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+	return /^[A-Z0-9][A-Z0-9._-]{1,63}$/.test(identifier);
+};
+
+// Authenticate only users already present in Firestore with a matching password.
 const authenticateUser = async (username, password) => {
-	const userDoc = await db.collection(COLLECTION_NAME).doc(username).get();
+	const identifier = normalizeLogin(username);
+	if (!isValidLoginIdentifier(identifier) || typeof password !== "string" || password.length === 0) return null;
 
-	if (!userDoc.exists && validateEmail(username)) {
-		// Auto-register user with "not�required" password
-		const newUser = {
-			username,
-			name: username.split('@')[0],
-			password: "not�required",
-			email: username,
-			role: "public",
-			createdAt: admin.firestore.Timestamp.now(),
-			lastUpdated: admin.firestore.Timestamp.now(),
-		};
-		await db.collection(COLLECTION_NAME).doc(username).set(newUser);
-		return {
-			...newUser,
-			passwordLess: true,
-		};
+	const users = db.collection(COLLECTION_NAME);
+	let userDoc = await users.doc(identifier).get();
+	if (!userDoc.exists && identifier.includes("@")) {
+		userDoc = await users.doc(identifier.toUpperCase()).get();
+		if (!userDoc.exists) {
+			const matchingUsers = await users.where("email", "==", identifier).limit(1).get();
+			if (!matchingUsers.empty) userDoc = matchingUsers.docs[0];
+		}
+		if (!userDoc.exists) {
+			const matchingUsers = await users.where("email", "==", identifier.toUpperCase()).limit(1).get();
+			if (!matchingUsers.empty) userDoc = matchingUsers.docs[0];
+		}
 	}
+	if (!userDoc.exists) return null;
 
 	const userData = userDoc.data();
-	// Don't send password back to the client
-	if (userData.password == password || userData.password == "not�required") {
-		const { password: _, ...userDataWithoutPassword } = userData;
-		const result = {
-			...userDataWithoutPassword,
-			username,
-		};
-		if (userData.password == "not�required") {
-			result.passwordLess = true;
-		}
-		return result;
-	}
-	return null;
+	if (
+		typeof userData.password !== "string" ||
+		userData.password.length === 0 ||
+		userData.password === "not�required" ||
+		userData.password !== password
+	) return null;
+	const { password: _, ...userDataWithoutPassword } = userData;
+	return { ...userDataWithoutPassword, username: userDoc.id };
 };
 
 // Get user data by username
@@ -63,6 +62,7 @@ const getUserData = async (username) => {
 		username,
 		requestedImages: snapshot.data().requestedImages || {},
 	};
+	delete data.password;
 
 	await cache.set(cacheKey, data, TTL.USER_DATA);
 	return data;

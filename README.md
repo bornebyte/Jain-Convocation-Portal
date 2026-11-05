@@ -1,9 +1,9 @@
 # Jain Convocation Portal
 > https://jain-convocation-portal.vercel.app/
-> | Test Account | Username | Password |
-> |--------------|----------|----------|
-> | Regular user | TEST006  | 12345678 |
-> | Admin        | ADMIN    | 12345678 |
+> | Test Account | Username | Email | Password |
+> |--------------|----------|-------|----------|
+> | Student      | TEST006  | test.student@example.com | 12345678 |
+> | Admin        | ADMIN    | test.admin@example.com | 12345678 |
 
 
 A React app with UI in MUI and Express.js backend for hosting the pictures taken during Jain University’s 14th convocation, which expects up to 17,000 visitors.
@@ -119,6 +119,14 @@ npm run dev
 ```
 Navigate to `http://localhost:3000` to see the app in action.
 > Make sure to setup admin/test accounts in the firestore database first.
+
+To seed or refresh the test accounts above in the Firestore project configured by `backend/.env`, run this from the `backend` directory:
+
+```bash
+SEED_TEST_USERS=true pnpm seed:test
+```
+
+This writes the two test accounts to the `2025` collection. Use these credentials only in a development or test Firebase project.
 
 ## Hosting
 
