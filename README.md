@@ -120,6 +120,10 @@ npm run dev
 Navigate to `http://localhost:3000` to see the app in action.
 > Make sure to setup admin/test accounts in the firestore database first.
 
+### Face Search Queue and Worker
+
+For deploying the queue on Vercel and running the Python worker on a separate laptop, see the [Face Search Queue and Worker Setup Guide](docs/face-search-queue-and-worker-setup.md).
+
 To seed or refresh the test accounts above in the Firestore project configured by `backend/.env`, run this from the `backend` directory:
 
 ```bash

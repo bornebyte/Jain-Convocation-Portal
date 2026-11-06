@@ -34,12 +34,14 @@ logger = logging.getLogger(__name__)
 # Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+REDIS_USERNAME = os.getenv('REDIS_USERNAME')
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_TLS = os.getenv('REDIS_TLS', '0').lower() in ('1', 'true', 'yes')
 GPU_INDEX = int(os.getenv('GPU_INDEX', 0))
 WORKER_CONCURRENCY = int(os.getenv('WORKER_CONCURRENCY', 1))
 USE_CPU = os.getenv('USE_CPU', '0') == '1'
 EXCLUDE_FACES_DIR = os.path.join(os.path.dirname(__file__), 'exclude_faces')
-CONVOCATION_PHOTOS_DIR = "Z:/Downloads/Jain 15th Convocation"
+CONVOCATION_PHOTOS_DIR = os.getenv('CONVOCATION_PHOTOS_DIR', 'Z:/Downloads/Jain 15th Convocation')
 
 
 def select_engine():
@@ -115,7 +117,9 @@ async def main():
         manager = WorkerManager(
             redis_host=REDIS_HOST,
             redis_port=REDIS_PORT,
+            redis_username=REDIS_USERNAME,
             redis_password=REDIS_PASSWORD,
+            redis_tls=REDIS_TLS,
             gpu_index=GPU_INDEX,
             use_cpu=USE_CPU,
             concurrency=WORKER_CONCURRENCY,
@@ -167,7 +171,9 @@ async def main():
                 'connection': {
                     'host': REDIS_HOST,
                     'port': REDIS_PORT,
-                    'password': REDIS_PASSWORD if REDIS_PASSWORD else None
+                    'username': REDIS_USERNAME or None,
+                    'password': REDIS_PASSWORD if REDIS_PASSWORD else None,
+                    'ssl': REDIS_TLS,
                 },
                 'concurrency': WORKER_CONCURRENCY,
                 'lockDuration': 300000,  # 5 minutes

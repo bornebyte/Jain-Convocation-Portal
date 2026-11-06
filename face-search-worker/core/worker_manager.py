@@ -20,7 +20,9 @@ class WorkerManager:
         self,
         redis_host: str,
         redis_port: int,
+        redis_username: Optional[str],
         redis_password: str,
+        redis_tls: bool,
         gpu_index: int,
         use_cpu: bool,
         concurrency: int,
@@ -30,7 +32,9 @@ class WorkerManager:
     ):
         self.redis_host = redis_host
         self.redis_port = redis_port
+        self.redis_username = redis_username
         self.redis_password = redis_password
+        self.redis_tls = redis_tls
         self.gpu_index = gpu_index
         self.use_cpu = use_cpu
         self.concurrency = concurrency
@@ -59,7 +63,9 @@ class WorkerManager:
         client = redis_lib.Redis(
             host=self.redis_host,
             port=self.redis_port,
+            username=self.redis_username,
             password=self.redis_password if self.redis_password else None,
+            ssl=self.redis_tls,
             decode_responses=True,
             socket_connect_timeout=5,
             socket_timeout=5,

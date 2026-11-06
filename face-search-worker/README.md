@@ -1,6 +1,6 @@
 # Face Search Worker
 
-GPU-powered face recognition worker for processing face search jobs from BullMQ queue.
+Python BullMQ consumer for the portal's face-search queue. The worker runs on a separate computer and connects **outbound** to the same Redis instance used by the deployed `face-search-queue` API. It does not expose an HTTP server and does not need a tunnel or inbound port forwarding.
 
 ## 🏗️ Architecture
 
@@ -25,66 +25,75 @@ face-search-worker/
 └── .env                 # Configuration
 ```
 
-## 🚀 Quick Start
+## Setup on a separate worker computer
 
-### 1. Choose Your Engine
+### 1. Prepare the gallery files
 
-**Engine 1: DeepFace** (TensorFlow-based)
-```bash
-conda activate tf
-cd engines/deepface
-pip install -r requirements.txt
+The worker reads the original gallery photos from disk; it does not download them from Vercel or Google Drive. Copy the gallery tree to this computer and preserve the directory names and filenames. The root must contain folders in this shape:
+
+```text
+<gallery-root>/
+└── 20-11-2025 Day 2/
+    └── 09.30AM to 01PM/
+        └── Station 1 (Right)/
+            ├── photo-name.jpg
+            └── ...
 ```
 
-**Engine 2: face_recognition** (dlib-based)  
-```bash
-conda activate ml
-cd engines/face_recognition
-pip install -r requirements.txt
+Each face-search job contains the selected `day/time/stage` path. The worker scans `<gallery-root>/<day>/<time>/<stage>` and returns relative file paths, so names must match the paths and filenames the portal gets from Drive.
+
+### 2. Install Python and dependencies (Windows CPU starter setup)
+
+Use 64-bit Python 3.10. The BullMQ Python package requires Python 3.10 or newer. From the repository root, open PowerShell:
+
+```powershell
+cd face-search-worker
+py -3.10 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r engines/deepface/requirements.txt
 ```
 
-### 2. Configure Environment
+The DeepFace requirements install the engine and its TensorFlow backend. The first face-search run may download model weights; keep the worker online until that first job finishes.
 
-Copy `.env.example` to `.env`:
+### 3. Configure the worker
 
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-GPU_INDEX=0
-WORKER_CONCURRENCY=1
-USE_CPU=0
+Copy the example file and edit it:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
 ```
 
-### 3. Run Worker
+Set `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, and `REDIS_TLS` to the same Redis endpoint and credentials configured on the **face-search-queue Vercel project**. Use the host only (no `redis://` or `rediss://` prefix). Set `REDIS_TLS=true` when your Redis provider requires TLS; otherwise use `false`.
 
-**Interactive Mode:**
-```bash
-# Activate appropriate environment first
-conda activate tf  # or ml
-python worker.py
-```
+Set `CONVOCATION_PHOTOS_DIR` to the gallery root on this computer. Forward slashes work in Windows paths, for example `C:/FaceSearch/Jain 15th Convocation`. Start with `USE_CPU=1` and `WORKER_CONCURRENCY=1`.
 
-**Direct Mode:**
-```bash
-conda activate tf
+### 4. Start the worker
+
+From the `face-search-worker` directory, with `.venv` active:
+
+```powershell
 python worker.py --engine deepface
-
-# OR
-
-conda activate ml
-python worker.py --engine face_recognition
 ```
 
-**Using Deployment Scripts:**
-```bash
-# Windows
-deploy.bat
+Leave this terminal open. A running worker should log that Redis connected, show a worker ID, and say it is waiting for jobs. In the queue dashboard, it should appear as online. Stop it with `Ctrl+C`.
 
-# Linux/Mac
-chmod +x deploy.sh
-./deploy.sh
-```
+### GPU setup (optional)
+
+First make CPU processing work. For an NVIDIA GPU on Linux or Windows with WSL2, install and verify the NVIDIA driver, then install TensorFlow's CUDA dependencies in the worker's Python environment and set `USE_CPU=0`. Windows native TensorFlow GPU is not supported after TensorFlow 2.10; use WSL2 for current TensorFlow GPU support. See [TensorFlow's install guide](https://www.tensorflow.org/install/pip) for the current driver and platform requirements.
+
+### Use `face_recognition` instead
+
+The alternative engine depends on `dlib`, which may require platform-specific native build tools. Install `engines/face_recognition/requirements.txt` in a compatible environment, then launch with `python worker.py --engine face_recognition`. For an initial Windows setup, DeepFace is the simpler path.
+
+## Network and Vercel configuration
+
+- Deploy `face-search-queue` as its own Vercel project and configure its Redis environment variables there. The portal submits jobs to its queue API; the worker consumes jobs directly from Redis.
+- Configure the portal's build-time `VITE_QUEUE_FALLBACK_URL` to the queue deployment's base URL if it is not `https://face-search-queue.vercel.app`. The frontend also probes `https://face-search.<portal-host>/api` first.
+- The worker computer needs outbound access to the Redis host and port. Do not open an inbound port on the computer or point Redis at `localhost`.
+- Use a dedicated, password-protected Redis instance reachable by both Vercel and the worker, with TLS when supported. BullMQ recommends Redis `maxmemory-policy=noeviction`.
+- Keep `.env` private; only commit `.env.example`. The Redis password must never be placed in a `VITE_*` variable or frontend code.
 
 ## 🎯 How It Works
 

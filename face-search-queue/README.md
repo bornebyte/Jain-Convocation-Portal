@@ -50,8 +50,12 @@ Create `.env.local` file:
 ```env
 REDIS_HOST=your-redis-host
 REDIS_PORT=6379
+REDIS_USERNAME=default
 REDIS_PASSWORD=your-redis-password
+REDIS_TLS=true
 ```
+
+Use a direct TCP Redis endpoint (not a REST URL). Configure the same host, port, username, password, and TLS setting in the Python worker's `.env` file. For a managed Redis service, set these variables in the Vercel project's Production environment and redeploy. BullMQ recommends configuring Redis with `maxmemory-policy=noeviction`.
 
 3. Run the development server:
 ```bash
