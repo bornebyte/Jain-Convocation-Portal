@@ -5,22 +5,12 @@
       "root": "backend",
       "framework": "express"
     },
-    "face-search-queue": {
-      "root": "face-search-queue",
-      "framework": "nextjs"
-    },
     "frontend": {
       "root": "frontend",
       "framework": "vite"
     }
   },
   "rewrites": [
-    {
-      "source": "/face-search-api/(.*)",
-      "destination": {
-        "service": "face-search-queue"
-      }
-    },
     {
       "source": "/api/(.*)",
       "destination": {
