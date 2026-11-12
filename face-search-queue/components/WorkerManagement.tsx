@@ -124,7 +124,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
   if (workers.length === 0) {
     return (
       <div className="glass rounded-2xl p-8 border border-blue-500/20">
-        <h2 className="text-2xl font-black mb-6 text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">🤖 Workers</h2>
+        <h2 className="text-2xl font-black mb-6 text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">Workers</h2>
         <div className="text-center py-16">
           <div className="text-7xl mb-6 animate-float">🤖</div>
           <div className="text-blue-300 mb-2 font-bold text-lg">No workers connected</div>
@@ -138,7 +138,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
     <div className="glass rounded-2xl p-4 md:p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-black text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">
-          🤖 Workers ({onlineWorkers.length}/{workers.length})
+          Workers <span className="dashboard-muted text-base font-medium">({onlineWorkers.length}/{workers.length})</span>
         </h2>
         <div className="flex gap-3">
           <div className="px-4 py-2 bg-emerald-500/20 border border-emerald-400/70 text-emerald-300 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-500/20">

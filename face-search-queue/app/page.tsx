@@ -66,6 +66,8 @@ interface QueueData {
 }
 
 export default function Home() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [themeReady, setThemeReady] = useState(false);
   const [queueData, setQueueData] = useState<QueueData | null>(null);
   const [workers, setWorkers] = useState<WorkerInfo[]>([]);
   const [isPaused, setIsPaused] = useState(false);
@@ -108,6 +110,10 @@ export default function Home() {
   };
 
   useEffect(() => {
+    const savedTheme = window.localStorage.getItem('face-search-queue-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme);
+    setThemeReady(true);
+
     fetchQueueData();
     fetchWorkers();
     fetchPauseStatus();
@@ -123,6 +129,11 @@ export default function Home() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (!themeReady) return;
+    window.localStorage.setItem('face-search-queue-theme', theme);
+  }, [theme, themeReady]);
   const handlePauseToggle = async () => {
     try {
       const endpoint = '/api/admin/pause';
@@ -221,15 +232,11 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
+      <div className="dashboard min-h-screen flex items-center justify-center" data-theme={theme}>
         <div className="flex flex-col items-center gap-4">
-          <div className="relative w-16 h-16">
-            <div className="absolute inset-0 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full animate-spin blur"></div>
-            <div className="absolute inset-1 bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 rounded-full"></div>
-            <div className="absolute inset-2 border-4 border-transparent border-t-blue-400 border-r-purple-400 rounded-full animate-spin"></div>
-          </div>
-          <div className="text-lg font-bold text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text animate-pulse">
-            Initializing Dashboard
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="text-sm font-medium dashboard-muted">
+            Connecting to queue
           </div>
         </div>
       </div>
@@ -237,30 +244,40 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 text-white p-4 md:p-6">
+    <div className="dashboard min-h-screen p-4 md:p-6" data-theme={theme}>
       <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
-        <div className="glass rounded-2xl p-4 md:p-8 border border-blue-500/20 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-linear-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="relative flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="dashboard-header rounded-2xl p-5 md:p-7 relative overflow-hidden">
+          <div className="relative flex flex-col lg:flex-row lg:justify-between lg:items-center gap-5">
             <div>
-              <h1 className="text-5xl md:text-6xl font-black gradient-text drop-shadow-lg animate-pulse-glow">
-                Face Search Queue
-              </h1>
-              <p className="text-blue-200/70 mt-2 text-sm md:text-base font-medium">Real-time queue orchestration & worker management</p>
+              <div className="eyebrow">OPERATIONS / VISION SYSTEMS</div>
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mt-2">Face Search Queue</h1>
+              <p className="dashboard-muted mt-2 text-sm">Live processing, worker health and job control</p>
             </div>
 
-            <QueueControls
-              isPaused={isPaused}
-              autoRefresh={autoRefresh}
-              onPauseToggle={handlePauseToggle}
-              onCleanQueue={handleCleanQueue}
-              onRefreshToggle={() => setAutoRefresh(!autoRefresh)}
-              onManualRefresh={() => {
-                fetchQueueData();
-                fetchPauseStatus();
-              }}
-            />
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3">
+              <button
+                type="button"
+                className="theme-toggle"
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+              >
+                <span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span>
+                <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+              </button>
+              <QueueControls
+                isPaused={isPaused}
+                autoRefresh={autoRefresh}
+                onPauseToggle={handlePauseToggle}
+                onCleanQueue={handleCleanQueue}
+                onRefreshToggle={() => setAutoRefresh(!autoRefresh)}
+                onManualRefresh={() => {
+                  fetchQueueData();
+                  fetchPauseStatus();
+                }}
+              />
+            </div>
           </div>
         </div>
 

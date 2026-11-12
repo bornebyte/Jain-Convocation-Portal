@@ -62,7 +62,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* Distribution Chart */}
       <div className="glass rounded-2xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
-        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">📊 Distribution</h3>
+        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">Job distribution</h3>
 
         <div className="flex justify-center mb-6">
           <div className="relative w-48 h-48">
@@ -128,7 +128,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
 
       {/* Metrics */}
       <div className="glass rounded-2xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
-        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">⚡ Performance</h3>
+        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">Performance</h3>
 
         <div className="space-y-8">
           <div>
@@ -179,7 +179,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
 
       {/* Activity Feed */}
       <div className="glass rounded-2xl p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
-        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">📝 Recent Activity</h3>
+        <h3 className="text-lg font-bold mb-6 text-transparent bg-linear-to-r from-blue-300 to-purple-300 bg-clip-text">Recent activity</h3>
 
         <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
           {[...jobs.completed, ...jobs.failed]

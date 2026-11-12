@@ -49,7 +49,7 @@ export default function QueueKanban({ jobs, onJobAction, onDeleteJob }: QueueKan
 
   return (
     <div className="glass rounded-2xl p-4 md:p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
-      <h2 className="text-2xl font-black mb-6 text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">📊 Queue Pipeline</h2>
+      <h2 className="text-2xl font-semibold tracking-tight mb-6 text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">Queue pipeline</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {columns.map((column) => (
