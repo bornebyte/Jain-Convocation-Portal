@@ -67,6 +67,8 @@ Set `REDIS_TLS=false` if the Redis endpoint is not TLS-enabled. Keep `REDIS_PASS
 5. Deploy the project and note its production origin, for example `https://face-search-queue.vercel.app`.
 6. Open `https://<queue-origin>/api/health`. It should return JSON with `"status":"ok"` and, critically, `"redis":"up"`. The endpoint can return `status: ok` even when Redis is down, so check both fields.
 
+The queue directory has its own `.vercelignore` because the repository-level ignore file excludes `face-search-queue/` from the main portal project. If Vercel reports `NEXT_NO_VERSION`, verify that the queue project's **Root Directory** is `face-search-queue`; the repository root does not contain the queue app's Next.js dependency.
+
 The same Redis host, port, username, password, and TLS mode must be configured on the laptop worker.
 
 ### Point the portal to the queue deployment
