@@ -1,0 +1,11 @@
+# This app deploys as a separate Vercel project. The repository-level
+# .vercelignore is for the portal and excludes this directory.
+.git
+.vercel
+node_modules
+.next
+coverage
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
