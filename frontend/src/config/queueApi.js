@@ -1,9 +1,9 @@
 /**
  * Queue API endpoint resolution with automatic failover.
  *
- * The face-search queue normally runs on the self-hosted server (proxied via
- * Caddy on the primary host). When that server is unreachable we fall back to
- * the standby deployment on Vercel so face search keeps working.
+ * In production, the queue is mounted as a Vercel Service on the same origin
+ * under /face-search-api. A separately deployed queue can still be configured
+ * as a fallback with VITE_QUEUE_FALLBACK_URL.
  *
  * Candidates are probed in order against the lightweight `/health` endpoint
  * and the first healthy one is cached for subsequent requests.
@@ -23,8 +23,7 @@ const devQueueBase = () => {
 const primaryQueueBase = () => {
   if (typeof location === 'undefined') return null;
   if (import.meta.env?.DEV) return devQueueBase();
-  // Production convention: queue is served from face-search.<host>.
-  return `https://face-search.${location.host}/api`;
+  return '/face-search-api/api';
 };
 
 const fallbackQueueBase = () => {

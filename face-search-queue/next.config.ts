@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Vercel Services mounts the queue app at this path so its /api routes do
+  // not collide with the Express backend's /api routes. Standalone local
+  // development continues to use the root path.
+  basePath: process.env.VERCEL ? "/face-search-api" : "",
   async headers() {
     return [
       {

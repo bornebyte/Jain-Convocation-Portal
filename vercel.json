@@ -16,6 +16,12 @@
   },
   "rewrites": [
     {
+      "source": "/face-search-api/(.*)",
+      "destination": {
+        "service": "face-search-queue"
+      }
+    },
+    {
       "source": "/api/(.*)",
       "destination": {
         "service": "backend"

@@ -45,14 +45,15 @@ Use the provider's **host only** for `REDIS_HOST`; do not include `redis://` or 
 
 Do not use a Redis REST URL. Do not expose a Redis server running on the laptop to the public internet. Both Vercel and the laptop should connect outward to the managed Redis endpoint.
 
-## 4. Deploy the queue API on Vercel
+## 4. Deploy the monorepo on Vercel
 
-The queue is a separate Next.js app at `face-search-queue/`; deploying only the portal project does not deploy this app automatically.
+The repository root `vercel.json` defines the frontend, Express backend, and face-search queue as three Vercel Services. They deploy from one Vercel project and share one domain. The portal serves at `/`, the Express API at `/api/*`, and the queue API at `/face-search-api/api/*`.
 
-1. In the Vercel dashboard, create a project from the same Git repository.
-2. Set **Root Directory** to `face-search-queue`.
-3. Let Vercel detect Next.js and use the app's normal install/build settings.
-4. In the queue project's **Settings → Environment Variables**, add the following values for **Production**. Add Preview too if you want preview deployments to use the same queue.
+1. In the Vercel dashboard, create or select the project connected to this Git repository.
+2. Set **Root Directory** to the repository root (`.`).
+3. Set **Framework Preset** to **Services**. Do not set it to Next.js: Next.js is only one service, and applying it to the repository root makes Vercel run `next build` where there is no Next.js package.
+4. Leave the service build settings in `vercel.json`; do not override the project with a single-app build command.
+5. In the project's **Settings → Environment Variables**, add these values for **Production**. Add Preview too if you want preview deployments to use the same queue.
 
 ```text
 REDIS_HOST=<host from your Redis provider>
@@ -64,16 +65,15 @@ REDIS_TLS=true
 
 Set `REDIS_TLS=false` if the Redis endpoint is not TLS-enabled. Keep `REDIS_PASSWORD` server-side; never use a `VITE_` prefix for it.
 
-5. Deploy the project and note its production origin, for example `https://face-search-queue.vercel.app`.
-6. Open `https://<queue-origin>/api/health`. It should return JSON with `"status":"ok"` and, critically, `"redis":"up"`. The endpoint can return `status: ok` even when Redis is down, so check both fields.
+6. Deploy the project. Open `https://<app-origin>/face-search-api/api/health`. It should return JSON with `"status":"ok"` and, critically, `"redis":"up"`. The endpoint can return `status: ok` even when Redis is down, so check both fields.
 
-The queue directory has its own `.vercelignore` because the repository-level ignore file excludes `face-search-queue/` from the main portal project. If Vercel reports `NEXT_NO_VERSION`, verify that the queue project's **Root Directory** is `face-search-queue`; the repository root does not contain the queue app's Next.js dependency.
+The queue directory has its own `.vercelignore` because the repository-level ignore file excludes `face-search-queue/` from the original portal-only deployment. The queue is mounted at `/face-search-api`, keeping its Next.js `/api/*` routes separate from the Express backend `/api/*` routes.
 
 The same Redis host, port, username, password, and TLS mode must be configured on the laptop worker.
 
 ### Point the portal to the queue deployment
 
-The portal tries `https://face-search.<portal-host>/api` first, then falls back to `https://face-search-queue.vercel.app/api`. If the queue's production origin is not `https://face-search-queue.vercel.app`, add this **build-time** variable to the portal Vercel project:
+When all three services share a Vercel deployment, the portal calls the queue through the same origin and no fallback variable is needed. If you deploy the queue as a separate Vercel project instead, add its production origin as this **build-time** variable in the portal project:
 
 ```text
 VITE_QUEUE_FALLBACK_URL=https://<queue-production-origin>
