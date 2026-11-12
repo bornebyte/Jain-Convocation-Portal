@@ -21,7 +21,7 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
-
+selfie_images/
 # Logs
 *.log
 

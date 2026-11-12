@@ -42,19 +42,28 @@ The worker reads the original gallery photos from disk; it does not download the
 
 Each face-search job contains the selected `day/time/stage` path. The worker scans `<gallery-root>/<day>/<time>/<stage>` and returns relative file paths, so names must match the paths and filenames the portal gets from Drive.
 
-### 2. Install Python and dependencies (Windows CPU starter setup)
+### 2. Install Python and dependencies (CPU starter setup)
 
-Use 64-bit Python 3.10. The BullMQ Python package requires Python 3.10 or newer. From the repository root, open PowerShell:
+Use 64-bit Python 3.11. Python 3.14 is too new for the TensorFlow dependency in this worker, and the pinned NumPy version also has no Python 3.14 wheel. Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) first, then create a Python 3.11 environment and install the dependencies from the repository root.
+
+Linux/macOS:
+
+```bash
+uv python install 3.11
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -r engines/deepface/requirements.txt
+```
+
+Windows PowerShell:
 
 ```powershell
 cd face-search-worker
-py -3.10 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r engines/deepface/requirements.txt
+uv python install 3.11
+uv venv --python 3.11 .venv
+uv pip install --python .venv\Scripts\python.exe -r engines/deepface/requirements.txt
 ```
 
-The DeepFace requirements install the engine and its TensorFlow backend. The first face-search run may download model weights; keep the worker online until that first job finishes.
+The DeepFace requirements install DeepFace 0.0.104, TensorFlow 2.21.0, and its matching `tf-keras` package. DeepFace requires `tf-keras` with TensorFlow 2.16 and newer. The first face-search run may download model weights; keep the worker online until that first job finishes.
 
 ### 3. Configure the worker
 
@@ -71,10 +80,10 @@ Set `CONVOCATION_PHOTOS_DIR` to the gallery root on this computer. Forward slash
 
 ### 4. Start the worker
 
-From the `face-search-worker` directory, with `.venv` active:
+From the `face-search-worker` directory:
 
 ```powershell
-python worker.py --engine deepface
+.venv\Scripts\python.exe worker.py --engine deepface
 ```
 
 Leave this terminal open. A running worker should log that Redis connected, show a worker ID, and say it is waiting for jobs. In the queue dashboard, it should appear as online. Stop it with `Ctrl+C`.
