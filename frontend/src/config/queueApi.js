@@ -14,9 +14,13 @@ const HEALTH_TIMEOUT_MS = 4000;
 const PROBE_TTL_MS = 60 * 1000;
 
 const stripTrailingSlash = (value) => value.replace(/\/+$/, '');
+const ensureApiPath = (value) => {
+  const base = stripTrailingSlash(value.trim());
+  return /\/api$/i.test(base) ? base : `${base}/api`;
+};
 const configuredFaceSearchApi = () => {
   const configured = import.meta.env?.VITE_FACE_SEARCH_API_URL?.trim();
-  return configured ? stripTrailingSlash(configured) : null;
+  return configured ? ensureApiPath(configured) : null;
 };
 
 const devQueueBase = () => {
