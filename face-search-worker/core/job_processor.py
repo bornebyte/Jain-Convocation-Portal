@@ -3,6 +3,7 @@ Job Processor
 Handles BullMQ job processing logic
 """
 
+import asyncio
 import os
 import time
 from typing import Dict, Any, List
@@ -98,7 +99,11 @@ async def process_job(
         logger.info(f"🖼️  Processing {len(gallery_images)} gallery images")
         
         # Perform face search
-        results = engine.search_faces(
+        # Face encoding is CPU-heavy and synchronous. Keep it off BullMQ's
+        # asyncio event loop so the worker can renew the active job lock while
+        # the gallery is being searched.
+        results = await asyncio.to_thread(
+            engine.search_faces,
             selfie_base64=selfie_image,
             gallery_images=gallery_images,
             exclude_images=exclude_images

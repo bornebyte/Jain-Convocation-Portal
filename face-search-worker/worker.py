@@ -107,6 +107,7 @@ async def main():
     print()  # Blank line for spacing
     
     manager = None
+    worker = None
     try:
         # Initialize metrics collector
         logger.info("📊 Initializing metrics collector...")
@@ -157,16 +158,12 @@ async def main():
                 logger=logger
             )
 
-        # Synchronous wrapper for the async job processor
-        def job_processor_sync(job, token):
-            return asyncio.get_event_loop().create_task(job_processor(job, token))
-        
         # Create BullMQ worker
         logger.info("⚙️  Starting BullMQ worker...\n")
         
         worker = Worker(
             name='face-search',
-            processor=job_processor_sync,
+            processor=job_processor,
             opts={
                 'connection': {
                     'host': REDIS_HOST,
@@ -195,9 +192,13 @@ async def main():
         import traceback
         traceback.print_exc()
     finally:
+        if worker is not None:
+            try:
+                await worker.close()
+            except Exception as e:
+                logger.error(f"Error while closing BullMQ worker: {e}")
         if manager is not None:
             manager.cleanup()
-        sys.exit(0)
 
 
 if __name__ == '__main__':

@@ -3,7 +3,6 @@ Worker Manager
 Handles worker lifecycle, registration, and cleanup
 """
 
-import os
 import time
 import json
 import socket
@@ -195,8 +194,10 @@ class WorkerManager:
         """Setup signal handlers for graceful shutdown"""
         def signal_handler(signum, frame):
             self.logger.info(f"\n\n⚠️  Received signal {signum}")
-            self.cleanup()
-            os._exit(0)
+            # Let the asyncio main loop return from its polling sleep so the
+            # BullMQ worker can close cleanly before Redis worker metadata is
+            # removed in main()'s finally block.
+            self.running = False
         
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
