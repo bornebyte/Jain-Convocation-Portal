@@ -3,7 +3,8 @@
  *
  * In production, the queue is mounted as a Vercel Service on the same origin
  * under /face-search-api. A separately deployed queue can still be configured
- * as a fallback with VITE_QUEUE_FALLBACK_URL.
+ * as a fallback with VITE_QUEUE_FALLBACK_URL. Set VITE_FACE_SEARCH_API_URL to
+ * route all face-search requests through a specific queue API base URL.
  *
  * Candidates are probed in order against the lightweight `/health` endpoint
  * and the first healthy one is cached for subsequent requests.
@@ -13,6 +14,10 @@ const HEALTH_TIMEOUT_MS = 4000;
 const PROBE_TTL_MS = 60 * 1000;
 
 const stripTrailingSlash = (value) => value.replace(/\/+$/, '');
+const configuredFaceSearchApi = () => {
+  const configured = import.meta.env?.VITE_FACE_SEARCH_API_URL?.trim();
+  return configured ? stripTrailingSlash(configured) : null;
+};
 
 const devQueueBase = () => {
   if (typeof location === 'undefined') return null;
@@ -38,6 +43,9 @@ const fallbackQueueBase = () => {
  * the same origin twice.
  */
 export const getQueueApiBaseUrls = () => {
+  const configured = configuredFaceSearchApi();
+  if (configured) return [configured];
+
   const urls = [primaryQueueBase(), fallbackQueueBase()].filter(Boolean);
   return [...new Set(urls.map(stripTrailingSlash))];
 };
