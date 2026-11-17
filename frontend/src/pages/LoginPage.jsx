@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
 import JGILogo from "/JGI.webp";
-import CONVOCATION_BANNER from "/banner.png";
+import CONVOCATION_BANNER from "/banner.webp";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
