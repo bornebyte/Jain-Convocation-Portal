@@ -27,7 +27,7 @@ const fetchServerConfig = async () => {
 };
 
 // Initialize fetch immediately and block until ready
-let configReadyPromise = fetchServerConfig();
+const configReadyPromise = fetchServerConfig();
 
 // Proxy handler that merges server settings with static config
 const configHandler = {
@@ -55,10 +55,7 @@ export const waitForConfig = () => configReadyPromise;
 export const refreshConfig = async () => {
   serverConfig = {};
   isReady = false;
-  // Replace the ready promise too, so waitForConfig() waits for THIS fetch
-  // instead of resolving against the already-settled initial one.
-  configReadyPromise = fetchServerConfig();
-  await configReadyPromise;
+  await fetchServerConfig();
 };
 
 export default config;
