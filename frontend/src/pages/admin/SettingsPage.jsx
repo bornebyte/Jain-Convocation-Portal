@@ -36,6 +36,9 @@ const SettingsPage = () => {
   const { getAuthHeaders } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cacheInvalidationKey, setCacheInvalidationKey] = useState('');
+  const [specificCacheKey, setSpecificCacheKey] = useState('');
+  const [isInvalidatingCache, setIsInvalidatingCache] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const mounted = useRef(false);
   const navigate = useNavigate();
@@ -74,6 +77,30 @@ const SettingsPage = () => {
         [field]: value
       }
     }));
+  };
+
+  const handleCacheInvalidation = async (scope, cacheKey = '') => {
+    const key = cacheInvalidationKey.trim();
+    const targetCacheKey = cacheKey.trim();
+    if (!key || (scope === 'key' && !targetCacheKey)) return;
+
+    const path = scope === 'key'
+      ? `key/${encodeURIComponent(targetCacheKey)}`
+      : scope;
+    const params = new URLSearchParams({ key });
+
+    setIsInvalidatingCache(true);
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/cache/invalidate/${path}?${params}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Cache invalidation failed');
+
+      setSnackbar({ open: true, message: result.message || 'Cache invalidated', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message || 'Cache invalidation failed', severity: 'error' });
+    } finally {
+      setIsInvalidatingCache(false);
+    }
   };
 
   const handleSave = async () => {
@@ -273,6 +300,60 @@ const SettingsPage = () => {
                     </Card>
                   );
                 })}
+              </Stack>
+            </Card>
+
+            <Card sx={{ p: 3 }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="h6">Cache Management</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Enter the cache invalidation key to enable these actions.
+                  </Typography>
+                </Box>
+                <TextField
+                  label="Cache invalidation key"
+                  type="password"
+                  value={cacheInvalidationKey}
+                  onChange={(event) => setCacheInvalidationKey(event.target.value)}
+                  autoComplete="off"
+                  fullWidth
+                />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap">
+                  {[
+                    { scope: 'all', label: 'Invalidate All Cache', color: 'error' },
+                    { scope: 'settings', label: 'Invalidate Settings' },
+                    { scope: 'courses', label: 'Invalidate Courses' },
+                    { scope: 'requests', label: 'Invalidate Requests' },
+                    { scope: 'users', label: 'Invalidate Users' }
+                  ].map(({ scope, label, color = 'primary' }) => (
+                    <Button
+                      key={scope}
+                      variant="outlined"
+                      color={color}
+                      disabled={!cacheInvalidationKey.trim() || isInvalidatingCache}
+                      onClick={() => handleCacheInvalidation(scope)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
+                  <TextField
+                    label="Specific cache key"
+                    value={specificCacheKey}
+                    onChange={(event) => setSpecificCacheKey(event.target.value)}
+                    disabled={!cacheInvalidationKey.trim() || isInvalidatingCache}
+                    fullWidth
+                  />
+                  <Button
+                    variant="outlined"
+                    disabled={!cacheInvalidationKey.trim() || !specificCacheKey.trim() || isInvalidatingCache}
+                    onClick={() => handleCacheInvalidation('key', specificCacheKey)}
+                  >
+                    Invalidate Key
+                  </Button>
+                </Stack>
               </Stack>
             </Card>
 
