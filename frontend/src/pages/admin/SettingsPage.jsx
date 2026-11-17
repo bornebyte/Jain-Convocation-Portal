@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -180,6 +180,12 @@ const SettingsPage = () => {
                 Click toggle to cycle: Default → Enabled → Disabled → Default
               </Typography>
               <Stack spacing={2}>
+                <Button
+                  variant="outlined"
+                  onClick={() => handleCategoryChange('config', 'GALLERY_REFRESH_TIMESTAMP', Date.now())}
+                >
+                  Record gallery refresh time (ms)
+                </Button>
                 {Object.keys(staticConfig).filter(key => !key.includes('URL')).map((key) => {
                   const value = settings.config?.[key];
                   const displayName = key.split('_').map(word => 
@@ -187,61 +193,52 @@ const SettingsPage = () => {
                   ).join(' ');
                   
                   return (
-                    <Fragment key={key}>
-                      <Card
-                        variant="outlined"
-                        sx={{
-                          p: 2,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            bgcolor: 'action.hover',
-                            boxShadow: 1
-                          }
-                        }}
-                        onClick={() => {
-                          const next = value === null ? true : (value === true ? false : null);
-                          handleCategoryChange('config', key, next);
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box>
-                            <Typography variant="body1" fontWeight={500}>
-                              {displayName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {value === null ? 'Using default value' : value ? 'Enabled' : 'Disabled'}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box
-                              sx={{
-                                px: 2,
-                                py: 0.5,
-                                borderRadius: 1,
-                                bgcolor: value === null ? 'grey.200' : (value ? 'success.light' : 'error.light'),
-                                color: value === null ? 'text.secondary' : (value ? 'success.dark' : 'error.dark'),
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                                minWidth: 80,
-                                textAlign: 'center',
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              {value === null ? 'DEFAULT' : value ? 'ON' : 'OFF'}
-                            </Box>
+                    <Card
+                      key={key}
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          boxShadow: 1
+                        }
+                      }}
+                      onClick={() => {
+                        const next = value === null ? true : (value === true ? false : null);
+                        handleCategoryChange('config', key, next);
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {displayName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {value === null ? 'Using default value' : value ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              px: 2,
+                              py: 0.5,
+                              borderRadius: 1,
+                              bgcolor: value === null ? 'grey.200' : (value ? 'success.light' : 'error.light'),
+                              color: value === null ? 'text.secondary' : (value ? 'success.dark' : 'error.dark'),
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              minWidth: 80,
+                              textAlign: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {value === null ? 'DEFAULT' : value ? 'ON' : 'OFF'}
                           </Box>
                         </Box>
-                      </Card>
-                      {key === 'SHOW_UPLOAD_ALERT' && (
-                        <Button
-                          variant="outlined"
-                          onClick={() => handleCategoryChange('config', 'GALLERY_REFRESH_TIMESTAMP', Date.now())}
-                        >
-                          Record gallery refresh time (ms)
-                        </Button>
-                      )}
-                    </Fragment>
+                      </Box>
+                    </Card>
                   );
                 })}
               </Stack>

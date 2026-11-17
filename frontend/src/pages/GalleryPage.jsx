@@ -16,7 +16,7 @@ import FaceSearchBanner from '../components/FaceSearchBanner';
 import FaceSearchDialog from '../components/FaceSearchDialog';
 import ImageGrid from '../components/ImageGrid';
 import PageHeader from '../components/PageHeader';
-import config, { waitForConfig } from '../config';
+import config from '../config';
 import { useAuth } from '../config/AuthContext';
 import { useFaceSearchQueue } from '../hooks/useFaceSearchQueue';
 import { cacheManager } from '../utils/cache';
@@ -80,10 +80,6 @@ function GalleryPage() {
       setPathData({ day, time, batch });
 
       try {
-        // Server config is fetched asynchronously on load - wait for it so the
-        // refresh stamp is available before choosing between cache and backend.
-        await waitForConfig();
-
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
         const refreshTimestamp = Number(config.GALLERY_REFRESH_TIMESTAMP) || 0;
@@ -99,7 +95,7 @@ function GalleryPage() {
 
         setImages(data);
         // Cache the new data
-        cacheManager.set(cacheKey, data, isRetry, refreshTimestamp);
+        cacheManager.set(cacheKey, data, isRetry);
       } catch (error) {
         console.error('Error fetching images:', error);
         if (!isRetry) {
