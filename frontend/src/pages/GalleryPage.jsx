@@ -16,10 +16,29 @@ import FaceSearchBanner from '../components/FaceSearchBanner';
 import FaceSearchDialog from '../components/FaceSearchDialog';
 import ImageGrid from '../components/ImageGrid';
 import PageHeader from '../components/PageHeader';
-import config from '../config';
+import config, { waitForConfig } from '../config';
 import { useAuth } from '../config/AuthContext';
 import { useFaceSearchQueue } from '../hooks/useFaceSearchQueue';
 import { cacheManager } from '../utils/cache';
+
+// Fixed per-batch galleries are cached forever on purpose (egress). The stamp an
+// entry was fetched under is kept next to it, so a forced refresh from the admin
+// panel is the one thing that makes the client go back to the backend.
+const stampKey = (cacheKey) => `${cacheKey}-refresh-stamp`;
+const readStamp = (cacheKey) => {
+  try {
+    return Number(localStorage.getItem(stampKey(cacheKey))) || 0;
+  } catch {
+    return 0;
+  }
+};
+const writeStamp = (cacheKey, stamp) => {
+  try {
+    localStorage.setItem(stampKey(cacheKey), String(stamp));
+  } catch {
+    // Ignore storage errors (private mode, quota) - worst case is one extra fetch
+  }
+};
 
 
 function GalleryPage() {
@@ -80,9 +99,19 @@ function GalleryPage() {
       setPathData({ day, time, batch });
 
       try {
+        // Server config arrives asynchronously, so wait before reading the stamp.
+        await waitForConfig();
+
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
-        const cached = !isRetry && cacheManager.get(cacheKey);
+        const refreshStamp = Number(config.GALLERY_REFRESH_TIMESTAMP) || 0;
+
+        // Bypass the cache on a network retry, or when the admin forced a refresh
+        // after this cache entry was written. Compared by value, not by clock, so
+        // a skewed device clock can't resurrect stale images or cause repeat fetches.
+        const isRefreshForced = refreshStamp > 0 && refreshStamp !== readStamp(cacheKey);
+
+        const cached = !isRetry && !isRefreshForced && cacheManager.get(cacheKey);
         if (cached) {
           setImages(cached);
           setLoading(false);
@@ -95,6 +124,7 @@ function GalleryPage() {
         setImages(data);
         // Cache the new data
         cacheManager.set(cacheKey, data, isRetry);
+        writeStamp(cacheKey, refreshStamp);
       } catch (error) {
         console.error('Error fetching images:', error);
         if (!isRetry) {

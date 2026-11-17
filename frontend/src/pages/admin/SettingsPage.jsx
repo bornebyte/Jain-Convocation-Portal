@@ -15,6 +15,17 @@ import config, { refreshConfig, staticConfig } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../config/AuthContext';
 
+// GALLERY_REFRESH_TIMESTAMP lives in the same `config` settings document as the
+// toggles, but it holds a timestamp instead of a boolean, so it gets its own row
+// right below Show Upload Alert instead of the Default -> On -> Off cycle.
+const REFRESH_STAMP_KEY = 'GALLERY_REFRESH_TIMESTAMP';
+const CONFIG_KEYS = (() => {
+  const keys = Object.keys(staticConfig).filter(key => !key.includes('URL') && key !== REFRESH_STAMP_KEY);
+  const showUploadAlert = keys.indexOf('SHOW_UPLOAD_ALERT');
+  keys.splice(showUploadAlert === -1 ? keys.length : showUploadAlert + 1, 0, REFRESH_STAMP_KEY);
+  return keys;
+})();
+
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
     payment: { upiId: '', amount: '', upiLink: '' },
@@ -180,11 +191,38 @@ const SettingsPage = () => {
                 Click toggle to cycle: Default → Enabled → Disabled → Default
               </Typography>
               <Stack spacing={2}>
-                {Object.keys(staticConfig).filter(key => !key.includes('URL')).map((key) => {
+                {CONFIG_KEYS.map((key) => {
                   const value = settings.config?.[key];
                   const displayName = key.split('_').map(word => 
                     word.charAt(0) + word.slice(1).toLowerCase()
                   ).join(' ');
+
+                  if (key === REFRESH_STAMP_KEY) {
+                    const stamp = Number(value) || 0;
+                    return (
+                      <Card key={key} variant="outlined" sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                          <Box>
+                            <Typography variant="body1" fontWeight={500}>
+                              {displayName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {stamp
+                                ? `Last forced refresh: ${new Date(stamp).toLocaleString()}`
+                                : 'Never forced - visitors keep using their cached gallery'}
+                            </Typography>
+                          </Box>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleCategoryChange('config', key, Date.now())}
+                          >
+                            Refresh now
+                          </Button>
+                        </Box>
+                      </Card>
+                    );
+                  }
                   
                   return (
                     <Card 
