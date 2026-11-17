@@ -61,8 +61,8 @@ router.get('/admin/settings/:category?', authMiddleware, async (req, res) => {
 // Public route for Config config (no auth required)
 router.get('/settings/config', async (req, res) => {
   try {
-    // Set cache header for 1 minute
-    res.set('Cache-Control', 'public, max-age=60');
+    // The frontend config includes timestamps used to invalidate client caches.
+    res.set('Cache-Control', 'no-store');
     const settings = await getSettings('config');
     res.json(settings);
   } catch (error) {
