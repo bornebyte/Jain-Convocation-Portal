@@ -1,6 +1,6 @@
 # Caching audit — findings tracker
 
-This PR carries **no commits** on purpose. It is a tracker: every finding below was reproduced against the running stack (backend + Vite + real Redis + real OneDrive folder), and each one becomes a checkbox. Fixes land on separate branches referencing the item numbers; the PR body gets updated as items are resolved.
+This PR is a tracker **and** the place the fixes land: every finding below was reproduced against the running stack (backend + Vite + real Redis + real OneDrive folder), and each one is a checkbox. Fixes are committed **directly to this branch**, one commit per item where practical, and the matching checkbox is ticked in this body as each item is closed. No separate branches, no throwaway PRs — the diff here is the audit plus its remediation, item by item.
 
 Everything below is measured data, not code reading. Reproduction commands are in **Reproduction toolbox** so a fresh session can re-verify each claim.
 
