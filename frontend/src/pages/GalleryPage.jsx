@@ -82,8 +82,7 @@ function GalleryPage() {
       try {
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
-        const refreshTimestamp = Number(config.GALLERY_REFRESH_TIMESTAMP) || 0;
-        const cached = !isRetry && cacheManager.get(cacheKey, refreshTimestamp);
+        const cached = !isRetry && cacheManager.get(cacheKey);
         if (cached) {
           setImages(cached);
           setLoading(false);

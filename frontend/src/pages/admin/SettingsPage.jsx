@@ -180,12 +180,6 @@ const SettingsPage = () => {
                 Click toggle to cycle: Default → Enabled → Disabled → Default
               </Typography>
               <Stack spacing={2}>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleCategoryChange('config', 'GALLERY_REFRESH_TIMESTAMP', Date.now())}
-                >
-                  Record gallery refresh time (ms)
-                </Button>
                 {Object.keys(staticConfig).filter(key => !key.includes('URL')).map((key) => {
                   const value = settings.config?.[key];
                   const displayName = key.split('_').map(word => 
@@ -193,14 +187,14 @@ const SettingsPage = () => {
                   ).join(' ');
                   
                   return (
-                    <Card
-                      key={key}
-                      variant="outlined"
-                      sx={{
-                        p: 2,
+                    <Card 
+                      key={key} 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 2, 
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        '&:hover': {
+                        '&:hover': { 
                           bgcolor: 'action.hover',
                           boxShadow: 1
                         }

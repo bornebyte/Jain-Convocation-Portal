@@ -4,7 +4,7 @@ const CACHE_CONFIG = {
 };
 
 export const cacheManager = {
-  get: (key, minimumTimestamp = 0) => {
+  get: (key) => {
     try {
       const item = localStorage.getItem(key);
       if (!item) return null;
@@ -12,8 +12,8 @@ export const cacheManager = {
       const { value, timestamp, retryCount = 0 } = JSON.parse(item);
       const ttl = CACHE_CONFIG[key]?.ttl;
 
-      // Don't use cache if retry count >= 3, the minimum timestamp is newer, or TTL expired
-      if (retryCount >= 3 || Number(timestamp || 0) < minimumTimestamp || (ttl && Date.now() - timestamp > ttl)) {
+      // Don't use cache if retry count >= 3 or TTL expired
+      if (retryCount >= 3 || (ttl && Date.now() - timestamp > ttl)) {
         localStorage.removeItem(key);
         return null;
       }
