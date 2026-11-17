@@ -4,6 +4,7 @@ export const staticConfig = {
 
   // ==== Server Configurable Settings with Static Defaults ====
   SHOW_UPLOAD_ALERT: true,
+  GALLERY_REFRESH_TIMESTAMP: 0, // epoch ms of the last admin-forced gallery refresh
   HARDCOPY_DISABLED: true,
   REMOVE_HARDCOPY: true,
   DEMO_MODE: false,
@@ -14,7 +15,8 @@ let isReady = false;
 
 const fetchServerConfig = async () => {
   try {
-    const res = await fetch(`${staticConfig.API_BASE_URL}/settings/config`);
+    // no-store: a stale HTTP-cached config would hide a forced-refresh timestamp
+    const res = await fetch(`${staticConfig.API_BASE_URL}/settings/config`, { cache: 'no-store' });
     if (res.ok) {
       const settings = await res.json();
       serverConfig = settings['config'] || {};
@@ -55,8 +57,8 @@ export const waitForConfig = () => configReadyPromise;
 export const refreshConfig = async () => {
   serverConfig = {};
   isReady = false;
-  // Replace the ready promise too, so waitForConfig() waits for THIS fetch
-  // instead of resolving against the already-settled initial one.
+  // Swap the ready promise too, otherwise waitForConfig() resolves against the
+  // already-settled first fetch and readers see static defaults again.
   configReadyPromise = fetchServerConfig();
   await configReadyPromise;
 };

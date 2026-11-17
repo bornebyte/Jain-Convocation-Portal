@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -14,6 +14,17 @@ import PageHeader from '../../components/PageHeader';
 import config, { refreshConfig, staticConfig } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../config/AuthContext';
+
+// GALLERY_REFRESH_TIMESTAMP lives in the same `config` settings document as the
+// toggles, but it holds a timestamp instead of a boolean, so it gets its own row
+// right below Show Upload Alert instead of the Default -> On -> Off cycle.
+const REFRESH_STAMP_KEY = 'GALLERY_REFRESH_TIMESTAMP';
+const CONFIG_KEYS = (() => {
+  const keys = Object.keys(staticConfig).filter(key => !key.includes('URL') && key !== REFRESH_STAMP_KEY);
+  const showUploadAlert = keys.indexOf('SHOW_UPLOAD_ALERT');
+  keys.splice(showUploadAlert === -1 ? keys.length : showUploadAlert + 1, 0, REFRESH_STAMP_KEY);
+  return keys;
+})();
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -180,68 +191,86 @@ const SettingsPage = () => {
                 Click toggle to cycle: Default → Enabled → Disabled → Default
               </Typography>
               <Stack spacing={2}>
-                {Object.keys(staticConfig).filter(key => !key.includes('URL')).map((key) => {
+                {CONFIG_KEYS.map((key) => {
                   const value = settings.config?.[key];
                   const displayName = key.split('_').map(word => 
                     word.charAt(0) + word.slice(1).toLowerCase()
                   ).join(' ');
-                  
-                  return (
-                    <Fragment key={key}>
-                      <Card
-                        variant="outlined"
-                        sx={{
-                          p: 2,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            bgcolor: 'action.hover',
-                            boxShadow: 1
-                          }
-                        }}
-                        onClick={() => {
-                          const next = value === null ? true : (value === true ? false : null);
-                          handleCategoryChange('config', key, next);
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+                  if (key === REFRESH_STAMP_KEY) {
+                    const stamp = Number(value) || 0;
+                    return (
+                      <Card key={key} variant="outlined" sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                           <Box>
                             <Typography variant="body1" fontWeight={500}>
                               {displayName}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {value === null ? 'Using default value' : value ? 'Enabled' : 'Disabled'}
+                              {stamp
+                                ? `Last forced refresh: ${new Date(stamp).toLocaleString()}`
+                                : 'Never forced - visitors keep using their cached gallery'}
                             </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box
-                              sx={{
-                                px: 2,
-                                py: 0.5,
-                                borderRadius: 1,
-                                bgcolor: value === null ? 'grey.200' : (value ? 'success.light' : 'error.light'),
-                                color: value === null ? 'text.secondary' : (value ? 'success.dark' : 'error.dark'),
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                                minWidth: 80,
-                                textAlign: 'center',
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              {value === null ? 'DEFAULT' : value ? 'ON' : 'OFF'}
-                            </Box>
-                          </Box>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleCategoryChange('config', key, Date.now())}
+                          >
+                            Refresh now
+                          </Button>
                         </Box>
                       </Card>
-                      {key === 'SHOW_UPLOAD_ALERT' && (
-                        <Button
-                          variant="outlined"
-                          onClick={() => handleCategoryChange('config', 'GALLERY_REFRESH_TIMESTAMP', Date.now())}
-                        >
-                          Record gallery refresh time (ms)
-                        </Button>
-                      )}
-                    </Fragment>
+                    );
+                  }
+                  
+                  return (
+                    <Card 
+                      key={key} 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 2, 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': { 
+                          bgcolor: 'action.hover',
+                          boxShadow: 1
+                        }
+                      }}
+                      onClick={() => {
+                        const next = value === null ? true : (value === true ? false : null);
+                        handleCategoryChange('config', key, next);
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {displayName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {value === null ? 'Using default value' : value ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              px: 2,
+                              py: 0.5,
+                              borderRadius: 1,
+                              bgcolor: value === null ? 'grey.200' : (value ? 'success.light' : 'error.light'),
+                              color: value === null ? 'text.secondary' : (value ? 'success.dark' : 'error.dark'),
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              minWidth: 80,
+                              textAlign: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {value === null ? 'DEFAULT' : value ? 'ON' : 'OFF'}
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Card>
                   );
                 })}
               </Stack>
