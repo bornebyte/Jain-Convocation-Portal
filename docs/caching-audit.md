@@ -507,9 +507,9 @@ Settings document read during the audit:
 ```json
 {"config":{"SHOW_UPLOAD_ALERT":true,"HARDCOPY_DISABLED":false,"REMOVE_HARDCOPY":false,
            "DEMO_MODE":false,"GALLERY_REFRESH_TIMESTAMP":1794930761207},
- "courses":{"folderId":"1Yr0d0h0yKtmuqaV7qtCHxSCGOmr2OYtO"},
- "general":{"gmailAppPass":"…","gmailUser":"shahshubham1888@gmail.com"},
- "payment":{"upiId":"9629519659@ptsbi","amount":"500","upiLink":"upi://pay?…"}}
+ "courses":{"folderId":"<drive folder id>"},
+ "general":{"gmailAppPass":"<redacted>","gmailUser":"<gmail acct>"},
+ "payment":{"upiId":"<redacted>","amount":"500","upiLink":"upi://pay?…"}}
 ```
 
 After `/api/cache/invalidate/all` (`🧹 Flushed 5 keys … db=0`), `GET /api/courses` still returned the live structure — Drive folder lookups kept using the in-memory `folderId`, proving the flush does not reset this layer.
@@ -777,7 +777,7 @@ next GET    ℹ️ FetchingStructure → 📦 Serving cached sessions → ✅ Fe
 <details>
 <summary>Context + Data</summary>
 
-`backend/services/gdrive.js:6` `EDGE_CACHE_PROXY = "https://delicate-leaf-46ed.shahshubham1888.workers.dev/"`, concatenated as `worker/` + `https://lh3.googleusercontent.com/drive-storage/…=s480` (`:138`) — note the doubled slash.
+`backend/services/gdrive.js:6` `EDGE_CACHE_PROXY ("<cloudflare worker origin>")`, concatenated as `worker/` + `https://lh3.googleusercontent.com/drive-storage/…=s480` (`:138`) — note the doubled slash.
 
 Three curl requests for the same thumbnail URL:
 
