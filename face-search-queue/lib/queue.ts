@@ -5,6 +5,7 @@ export interface FaceSearchJobData {
   image: string;
   uid: string;
   stage: string;
+  consented: boolean;
   timestamp: number;
 }
 

@@ -276,9 +276,12 @@ const useCreateJob = ({
     return compressCanvas(canvas);
   }, []);
 
-  const createJob = useCallback(async (preparedImage) => {
+  const createJob = useCallback(async (preparedImage, hasConsented) => {
     if (!userId) {
       throw new Error('You must be logged in to start a face search.');
+    }
+    if (hasConsented !== true) {
+      throw new Error('Consent is required before starting a face search.');
     }
     setCreating(true);
     setCreateError(null);
@@ -292,6 +295,7 @@ const useCreateJob = ({
           image: preparedImage,
           uid: userId,
           stage: stageKey,
+          consented: true,
         }),
       });
 

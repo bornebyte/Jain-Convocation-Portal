@@ -3,11 +3,13 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   Stack,
   Typography,
@@ -61,6 +63,7 @@ function FaceSearchDialog({
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState(() => getStoredCameraId());
   const [hasConsented, setHasConsented] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
 
   const videoConstraints = useMemo(
     () =>
@@ -109,26 +112,26 @@ function FaceSearchDialog({
       setPermissionError(null);
       setDevices([]);
       setHasConsented(false);
-    } else if (open) {
-      handleEnableCamera();
+      setCameraEnabled(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
-    if (!open || !hasConsented || !navigator?.mediaDevices?.addEventListener) return undefined;
+    if (!open || !cameraEnabled || !navigator?.mediaDevices?.addEventListener) return undefined;
     const handler = () => refreshDevices();
     navigator.mediaDevices.addEventListener('devicechange', handler);
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', handler);
     };
-  }, [hasConsented, open, refreshDevices]);
+  }, [cameraEnabled, open, refreshDevices]);
 
   const handleClose = () => {
     if (creating || isCapturing) return;
     setValidationError(null);
     clearCreateError?.();
     setHasConsented(false);
+    setCameraEnabled(false);
     onClose();
   };
 
@@ -149,16 +152,20 @@ function FaceSearchDialog({
     if (deviceId) {
       selectDevice(null);
     }
-    setHasConsented(false);
+    setCameraEnabled(false);
   }, [deviceId, selectDevice]);
 
   const handleEnableCamera = () => {
     setPermissionError(null);
-    setHasConsented(true);
+    setCameraEnabled(true);
   };
 
   const handleCapture = async () => {
     if (!hasConsented) {
+      setValidationError('Please consent before starting a face search.');
+      return;
+    }
+    if (!cameraEnabled) {
       setValidationError('Please enable the camera before capturing.');
       return;
     }
@@ -180,7 +187,7 @@ function FaceSearchDialog({
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       const preparedImage = await prepareImage(canvas);
-      await createJob(preparedImage);
+      await createJob(preparedImage, hasConsented);
       handleClose();
     } catch (err) {
       setValidationError(err.message || 'Unable to process photo. Please try again.');
@@ -198,6 +205,26 @@ function FaceSearchDialog({
             Position your face clearly inside the frame. Make sure only you are visible with ample lighting.
           </Typography>
 
+          <Alert severity="info">
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              Your photo will be sent to the face-search service to find matching images in this gallery.
+            </Typography>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={hasConsented}
+                  disabled={creating || isCapturing}
+                  onChange={(event) => {
+                    setHasConsented(event.target.checked);
+                    if (!event.target.checked) setCameraEnabled(false);
+                    setValidationError(null);
+                  }}
+                />
+              }
+              label="I consent to using my photo for a face search."
+            />
+          </Alert>
+
           {permissionError && <Alert severity="error">{permissionError}</Alert>}
           {!createError && validationError && <Alert severity="warning">{validationError}</Alert>}
           {createError && <Alert severity="error">{createError}</Alert>}
@@ -214,7 +241,7 @@ function FaceSearchDialog({
               justifyContent: 'center',
             }}
           >
-            {hasConsented ? (
+            {cameraEnabled ? (
               <>
                 <Webcam
                   ref={webcamRef}
@@ -275,11 +302,15 @@ function FaceSearchDialog({
             ) : (
               <Stack spacing={2} alignItems="center" px={3}>
                 <Typography variant="body1" color="common.white" align="center">
-                  Tap below to enable your camera. You’ll be prompted for permission.
+                  {hasConsented
+                    ? 'Enable your camera when you are ready. Your browser will ask for camera permission.'
+                    : 'Give consent above before enabling your camera or starting a face search.'}
                 </Typography>
-                <Button variant="contained" onClick={handleEnableCamera}>
-                  Enable Camera
-                </Button>
+                {hasConsented && (
+                  <Button variant="contained" onClick={handleEnableCamera}>
+                    Enable Camera
+                  </Button>
+                )}
               </Stack>
             )}
           </Box>
@@ -296,6 +327,11 @@ function FaceSearchDialog({
                 setValidationError(null);
                 const file = e?.target?.files?.[0];
                 if (!file) return;
+                if (!hasConsented) {
+                  setValidationError('Please consent before starting a face search.');
+                  e.target.value = null;
+                  return;
+                }
 
                 setIsCapturing(true);
                 const url = URL.createObjectURL(file);
@@ -379,7 +415,10 @@ function FaceSearchDialog({
                   }
 
                   const prepared = await prepareImage(canvas);
-                  await createJob(prepared);
+                  if (!hasConsented) {
+                    throw new Error('Please consent before starting a face search.');
+                  }
+                  await createJob(prepared, hasConsented);
                   // cleanup and close
                   URL.revokeObjectURL(url);
                   handleClose();
@@ -408,7 +447,7 @@ function FaceSearchDialog({
         <Button
           variant="contained"
           onClick={handleCapture}
-          disabled={!hasConsented || Boolean(permissionError) || creating || isCapturing}
+          disabled={!hasConsented || !cameraEnabled || Boolean(permissionError) || creating || isCapturing}
           startIcon={(creating || isCapturing) && <CircularProgress size={16} />}
         >
           {creating ? 'Submitting…' : 'Capture & Search'}

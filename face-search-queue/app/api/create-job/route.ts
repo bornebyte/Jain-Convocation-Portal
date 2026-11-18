@@ -5,7 +5,14 @@ import type { FaceSearchJobData } from '@/lib/queue';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { image, uid, stage } = body;
+    const { image, uid, stage, consented } = body;
+
+    if (consented !== true) {
+      return NextResponse.json(
+        { error: 'Consent required', message: 'Consent is required before starting a face search' },
+        { status: 400 }
+      );
+    }
 
     // Validation
     if (!image || typeof image !== 'string') {
@@ -70,6 +77,7 @@ export async function POST(request: NextRequest) {
       image,
       uid,
       stage,
+      consented: true,
       timestamp,
     };
 
