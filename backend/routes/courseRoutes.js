@@ -3,6 +3,13 @@ const router = express.Router();
 const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/gdrive');
 const { log } = require('../utils/logUtils');
 
+// Redis is the application cache for these responses. Keep browser/CDN caches
+// from retaining stale folder and image metadata after an admin invalidation.
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // Route to get list of courses (OneDrive folders)
 router.get('/courses', async (req, res) => {
   try {

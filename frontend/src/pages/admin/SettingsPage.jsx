@@ -91,9 +91,14 @@ const SettingsPage = () => {
 
     setIsInvalidatingCache(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/cache/invalidate/${path}?${params}`);
+      const response = await fetch(`${config.API_BASE_URL}/cache/invalidate/${path}?${params}`, { cache: 'no-store' });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || 'Cache invalidation failed');
+
+      if (scope === 'all' || scope === 'courses') {
+        await refreshConfig();
+        await fetchSettings();
+      }
 
       setSnackbar({ open: true, message: result.message || 'Cache invalidated', severity: 'success' });
     } catch (error) {

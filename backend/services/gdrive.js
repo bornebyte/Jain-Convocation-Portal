@@ -32,6 +32,25 @@ const _getShareId = () => {
 const LEVEL_CHILD_KEYS = ['times', 'batches'];
 const TREE_CACHE = new Map();
 
+const clearCourseMemoryCache = () => {
+    TREE_CACHE.clear();
+};
+
+const invalidateCourseCache = async () => {
+    clearCourseMemoryCache();
+
+    const patterns = [
+        'course_folders',
+        'course_images_*',
+        'image_links_*',
+        'gdrive_folders_*',
+    ];
+    const keys = (await Promise.all(patterns.map((pattern) => cache.keys(pattern)))).flat();
+    const uniqueKeys = [...new Set(keys)];
+    const deleted = await cache.del(uniqueKeys);
+    return { keys: uniqueKeys, deleted };
+};
+
 const _getTreeCacheKey = (parentId, depth) => `${parentId}:${depth}`;
 
 const _fetchFolderTree = async (drive, parentId, depth = 0) => {
@@ -189,4 +208,10 @@ const getImageLinks = async (fullPaths) => {
     }
 };
 
-module.exports = { getCourseFolders, getCourseImages, getImageLinks };
+module.exports = {
+    getCourseFolders,
+    getCourseImages,
+    getImageLinks,
+    clearCourseMemoryCache,
+    invalidateCourseCache,
+};

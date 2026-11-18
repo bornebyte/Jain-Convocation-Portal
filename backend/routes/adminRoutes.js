@@ -61,8 +61,10 @@ router.get('/admin/settings/:category?', authMiddleware, async (req, res) => {
 // Public route for Config config (no auth required)
 router.get('/settings/config', async (req, res) => {
   try {
-    // Set cache header for 1 minute
-    res.set('Cache-Control', 'public, max-age=60');
+    // The refresh stamp must be current after an admin invalidates gallery caches.
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     const settings = await getSettings('config');
     res.json(settings);
   } catch (error) {

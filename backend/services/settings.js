@@ -50,7 +50,21 @@ const updateSettings = async (settings) => {
     return { success: true };
 };
 
+const bumpGalleryRefreshStamp = async () => {
+    const docRef = db.collection('settings').doc('config');
+    const snapshot = await docRef.get();
+    const currentStamp = Number(snapshot.exists ? snapshot.data().GALLERY_REFRESH_TIMESTAMP : 0) || 0;
+    const stamp = Math.max(Date.now(), currentStamp + 1);
+
+    await docRef.set({ GALLERY_REFRESH_TIMESTAMP: stamp }, { merge: true });
+    await invalidateCache('settings', 'config');
+    updateSettingsCache({ config: { GALLERY_REFRESH_TIMESTAMP: stamp } });
+
+    return stamp;
+};
+
 module.exports = {
     getSettings,
     updateSettings,
+    bumpGalleryRefreshStamp,
 };

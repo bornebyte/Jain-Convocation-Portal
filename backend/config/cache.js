@@ -104,7 +104,10 @@ class RedisCacheWrapper {
   async keys(pattern = '*') {
     pattern = KEY_PREFIX + pattern;
     try {
-      return await this.redis.keys(pattern);
+      const keys = await this.redis.keys(pattern);
+      // Keep the wrapper's public API in logical (unprefixed) key space. Callers
+      // pass these values to del(), which adds KEY_PREFIX itself.
+      return keys.map((key) => key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key);
     } catch (error) {
       console.error(`Cache keys error for pattern ${pattern}:`, error.message);
       return [];

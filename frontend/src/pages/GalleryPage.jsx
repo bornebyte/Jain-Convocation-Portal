@@ -16,14 +16,13 @@ import FaceSearchBanner from '../components/FaceSearchBanner';
 import FaceSearchDialog from '../components/FaceSearchDialog';
 import ImageGrid from '../components/ImageGrid';
 import PageHeader from '../components/PageHeader';
-import config, { waitForConfig } from '../config';
+import config, { refreshConfig } from '../config';
 import { useAuth } from '../config/AuthContext';
 import { useFaceSearchQueue } from '../hooks/useFaceSearchQueue';
 import { cacheManager } from '../utils/cache';
 
-// Fixed per-batch galleries are cached forever on purpose (egress). The stamp an
-// entry was fetched under is kept next to it, so a forced refresh from the admin
-// panel is the one thing that makes the client go back to the backend.
+// Keep the stamp an entry was fetched under beside the cached gallery. When an
+// admin invalidates course data, the new stamp makes clients fetch it again.
 const stampKey = (cacheKey) => `${cacheKey}-refresh-stamp`;
 const readStamp = (cacheKey) => {
   try {
@@ -40,11 +39,28 @@ const writeStamp = (cacheKey, stamp) => {
   }
 };
 
+const versionImageUrls = (images, refreshStamp) => {
+  if (!refreshStamp) return images;
+
+  return images.map((image) => {
+    const [path, imageUrl] = Object.entries(image)[0] || [];
+    if (!path || !imageUrl) return image;
+
+    try {
+      const versionedUrl = new URL(imageUrl);
+      versionedUrl.searchParams.set('v', String(refreshStamp));
+      return { [path]: versionedUrl.toString() };
+    } catch {
+      return image;
+    }
+  });
+};
+
 
 function GalleryPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const mounted = useRef(false);
+  const lastFetchedSession = useRef(null);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
@@ -88,8 +104,8 @@ function GalleryPage() {
   }, [faceMatchMap, faceSearch.isFiltering, images]);
 
   useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
+    if (lastFetchedSession.current === sessionId) return;
+    lastFetchedSession.current = sessionId;
 
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
@@ -99,8 +115,9 @@ function GalleryPage() {
       setPathData({ day, time, batch });
 
       try {
-        // Server config arrives asynchronously, so wait before reading the stamp.
-        await waitForConfig();
+        // Refresh the stamp each time a gallery is opened so invalidations made
+        // while this tab was open are seen without requiring a full reload.
+        await refreshConfig();
 
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
@@ -118,8 +135,9 @@ function GalleryPage() {
           return;
         }
 
-        const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
-        const data = await response.json();
+        const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Image request failed with status ${response.status}`);
+        const data = versionImageUrls(await response.json(), refreshStamp);
 
         setImages(data);
         // Cache the new data

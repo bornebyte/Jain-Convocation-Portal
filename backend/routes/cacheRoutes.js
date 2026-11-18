@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { cache, redisClient } = require('../config/cache');
+const { clearCourseMemoryCache, invalidateCourseCache } = require('../services/gdrive');
+const { bumpGalleryRefreshStamp } = require('../services/settings');
+
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -21,11 +28,15 @@ const verifySecret = (req, res, next) => {
 // GET /api/cache/invalidate/all - Flush all cache
 router.get('/invalidate/all', verifySecret, async (req, res) => {
   try {
-    await cache.flushAll();
+    const flushed = await cache.flushAll();
+    if (!flushed) throw new Error('Redis cache flush failed');
+    clearCourseMemoryCache();
+    const galleryRefreshTimestamp = await bumpGalleryRefreshStamp();
     console.log('🗑️ All cache invalidated');
     res.json({ 
       success: true, 
-      message: 'All cache cleared successfully' 
+      message: 'All cache cleared successfully; gallery refresh requested',
+      galleryRefreshTimestamp,
     });
   } catch (error) {
     console.error('Error clearing all cache:', error);
@@ -63,17 +74,15 @@ router.get('/invalidate/settings', verifySecret, async (req, res) => {
 // GET /api/cache/invalidate/courses - Clear all courses cache
 router.get('/invalidate/courses', verifySecret, async (req, res) => {
   try {
-    const courseKeys = await cache.keys('courses_*');
-    const gdriveKeys = await cache.keys('gdrive_folders_*');
-    const keys = [...new Set([...(courseKeys || []), ...(gdriveKeys || [])])];
-    if (keys.length > 0) {
-      await cache.del(keys);
-    }
-    console.log(`🗑️ Invalidated ${keys.length} courses cache keys`);
+    const { keys, deleted } = await invalidateCourseCache();
+    const galleryRefreshTimestamp = await bumpGalleryRefreshStamp();
+    console.log(`🗑️ Invalidated ${deleted} course and image cache keys`);
     res.json({ 
       success: true, 
-      message: `Cleared ${keys.length} courses cache keys`,
-      keys 
+      message: `Cleared ${deleted} course and image cache keys; gallery refresh requested`,
+      deleted,
+      keys,
+      galleryRefreshTimestamp,
     });
   } catch (error) {
     console.error('Error clearing courses cache:', error);
