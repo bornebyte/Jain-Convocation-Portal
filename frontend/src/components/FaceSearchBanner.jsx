@@ -26,6 +26,7 @@ function FaceSearchBanner({
   isStale,
   resultCount,
   hasResult,
+  hasGalleryMatches,
   onCancel,
   onToggleFilter,
   onRetry,
@@ -155,6 +156,31 @@ function FaceSearchBanner({
             <AlertTitle sx={titleSx}>Gallery Updated</AlertTitle>
             <Typography {...messageTypographyProps}>
               The gallery changed — re-run to get newer matches.
+            </Typography>
+          </Box>
+        </Box>
+      </Alert>
+    );
+  }
+
+  if (isFiltering && resultCount > 0 && hasGalleryMatches === false) {
+    return (
+      <Alert
+        severity="warning"
+        variant="standard"
+        sx={alertSx}
+        action={
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+            {renderAction({ label: 'Re-run', onClick: onRetry, icon: ReplayIcon, ariaLabel: 'rerun' })}
+            {renderAction({ label: 'Clear', onClick: onDismissError, icon: DeleteSweep, ariaLabel: 'clear results' })}
+          </Stack>
+        }
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', width: '100%' }}>
+          <Box sx={{ flex: 1 }}>
+            <AlertTitle sx={titleSx}>Matches not found in this gallery</AlertTitle>
+            <Typography {...messageTypographyProps}>
+              The search returned {resultCount} {resultCount === 1 ? 'match' : 'matches'}, but none match the loaded photo paths. All gallery photos are shown.
             </Typography>
           </Box>
         </Box>

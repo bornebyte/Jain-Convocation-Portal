@@ -56,6 +56,13 @@ const versionImageUrls = (images, refreshStamp) => {
   });
 };
 
+const normalizeFacePath = (path) => String(path ?? '')
+  .replace(/\\/g, '/')
+  .replace(/\/{2,}/g, '/')
+  .replace(/^\/|\/$/g, '')
+  .normalize('NFC')
+  .toLowerCase();
+
 
 function GalleryPage() {
   const { sessionId } = useParams();
@@ -86,22 +93,43 @@ function GalleryPage() {
 
   const faceMatchMap = useMemo(() => {
     if (!faceSearch.result?.length) return {};
+
+    const galleryPaths = images
+      .map((item) => Object.keys(item)[0])
+      .filter(Boolean);
+    const exactPaths = new Map(galleryPaths.map((path) => [normalizeFacePath(path), path]));
+    const pathsByName = new Map();
+
+    galleryPaths.forEach((path) => {
+      const name = normalizeFacePath(path).split('/').pop();
+      const matches = pathsByName.get(name) ?? [];
+      matches.push(path);
+      pathsByName.set(name, matches);
+    });
+
     return faceSearch.result.reduce((acc, { id, similarity }) => {
-      acc[id] = similarity;
+      const normalizedId = normalizeFacePath(id);
+      const exactPath = exactPaths.get(normalizedId);
+      const nameMatches = pathsByName.get(normalizedId.split('/').pop()) ?? [];
+      const galleryPath = exactPath ?? (nameMatches.length === 1 ? nameMatches[0] : null);
+      if (galleryPath) acc[galleryPath] = similarity;
       return acc;
     }, {});
-  }, [faceSearch.result]);
+  }, [faceSearch.result, images]);
 
   const displayImages = useMemo(() => {
     if (!faceSearch.isFiltering) return images;
-    return images
+    const matches = images
       .filter((item) => faceMatchMap[Object.keys(item)[0]] !== undefined)
       .sort((a, b) => {
         const aId = Object.keys(a)[0];
         const bId = Object.keys(b)[0];
         return faceMatchMap[bId] - faceMatchMap[aId];
       });
-  }, [faceMatchMap, faceSearch.isFiltering, images]);
+    // Keep the gallery usable if worker IDs cannot be resolved against the
+    // current gallery metadata; the banner explains the mismatch.
+    return matches.length > 0 || !faceSearch.result?.length ? matches : images;
+  }, [faceMatchMap, faceSearch.isFiltering, faceSearch.result, images]);
 
   useEffect(() => {
     if (lastFetchedSession.current === sessionId) return;
@@ -277,6 +305,7 @@ function GalleryPage() {
                   isStale={faceSearch.isStaleResult}
                   resultCount={faceSearch.result?.length || 0}
                   hasResult={Boolean(faceSearch.result)}
+                  hasGalleryMatches={loading ? null : Object.keys(faceMatchMap).length > 0}
                   onCancel={faceSearch.clearJob}
                   onToggleFilter={faceSearch.toggleFilter}
                   onRetry={() => {
